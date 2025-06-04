@@ -1,14 +1,13 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+import { RecaptchaVerifier, signInWithPhoneNumber, PhoneAuthProvider, signInWithCredential } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { Phone, User } from "lucide-react";
+import { Phone } from "lucide-react";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -109,7 +108,6 @@ export const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProp
 
     setIsLoading(true);
     try {
-      const { PhoneAuthProvider, signInWithCredential } = await import("firebase/auth");
       const credential = PhoneAuthProvider.credential(verificationId, otp);
       await signInWithCredential(auth, credential);
       
