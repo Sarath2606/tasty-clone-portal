@@ -1,5 +1,4 @@
-
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getAnalytics } from 'firebase/analytics';
 
@@ -13,9 +12,15 @@ const firebaseConfig = {
   measurementId: "G-1P7RNTKP80"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+// Initialize Firebase only if it hasn't been initialized
+let app;
+if (!getApps().length) {
+  app = initializeApp(firebaseConfig);
+  // Only initialize analytics in production
+  if (process.env.NODE_ENV === 'production') {
+    getAnalytics(app);
+  }
+}
 
 // Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);
