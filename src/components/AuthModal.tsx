@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +24,9 @@ export const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProp
   const [verificationId, setVerificationId] = useState("");
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [countdown, setCountdown] = useState(0);
   const { toast } = useToast();
+  const countdownRef = useRef<NodeJS.Timeout | null>(null);
 
   const countryCodes = [
     { code: "+1", country: "US" },
@@ -38,6 +41,21 @@ export const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProp
     { code: "+55", country: "BR" }
   ];
 
+  const startCountdown = (seconds: number) => {
+    setCountdown(seconds);
+    countdownRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          if (countdownRef.current) {
+            clearInterval(countdownRef.current);
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
   const setupRecaptcha = () => {
     if (!window.recaptchaVerifier) {
       window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
@@ -47,6 +65,11 @@ export const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProp
         },
         'expired-callback': () => {
           console.log('reCAPTCHA expired');
+          // Reset recaptcha on expiry
+          if (window.recaptchaVerifier) {
+            window.recaptchaVerifier.clear();
+            window.recaptchaVerifier = undefined;
+          }
         }
       });
     }
@@ -62,15 +85,35 @@ export const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProp
       return;
     }
 
+    if (countdown > 0) {
+      toast({
+        title: "Please wait",
+        description: `Wait ${countdown} seconds before requesting another OTP`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
+      // Clear any existing recaptcha verifier
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = undefined;
+      }
+
       setupRecaptcha();
       const appVerifier = window.recaptchaVerifier;
       const fullPhoneNumber = `${countryCode}${phoneNumber}`;
       
+      console.log('Sending OTP to:', fullPhoneNumber);
+      
       const confirmationResult = await signInWithPhoneNumber(auth, fullPhoneNumber, appVerifier);
       setVerificationId(confirmationResult.verificationId);
       setIsOtpSent(true);
+      
+      // Start cooldown to prevent spam requests
+      startCountdown(60);
       
       toast({
         title: "OTP Sent",
@@ -79,11 +122,30 @@ export const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProp
     } catch (error: any) {
       console.error("Error sending OTP:", error);
       let errorMessage = "Failed to send OTP. Please try again.";
+      let cooldownTime = 30;
       
       if (error.code === "auth/invalid-phone-number") {
         errorMessage = "Invalid phone number format";
+        cooldownTime = 0;
       } else if (error.code === "auth/too-many-requests") {
-        errorMessage = "Too many requests. Please try again later.";
+        errorMessage = "Too many requests. Please wait 5 minutes before trying again.";
+        cooldownTime = 300; // 5 minutes
+      } else if (error.code === "auth/quota-exceeded") {
+        errorMessage = "SMS quota exceeded. Please try again later.";
+        cooldownTime = 300;
+      } else if (error.code === "auth/captcha-check-failed") {
+        errorMessage = "Captcha verification failed. Please try again.";
+        cooldownTime = 60;
+      }
+      
+      if (cooldownTime > 0) {
+        startCountdown(cooldownTime);
+      }
+      
+      // Clear recaptcha on error
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = undefined;
       }
       
       toast({
@@ -144,6 +206,15 @@ export const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProp
     setOtp("");
     setVerificationId("");
     setIsOtpSent(false);
+    setCountdown(0);
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+    }
+    // Clear recaptcha when resetting
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+      window.recaptchaVerifier = undefined;
+    }
   };
 
   const handleBackToPhone = () => {
@@ -152,10 +223,15 @@ export const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProp
     setVerificationId("");
   };
 
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
   return (
     <>
       <div id="recaptcha-container"></div>
-      <Dialog open={isOpen} onOpenChange={onClose}>
+      <Dialog open={isOpen} onOpenChange={handleClose}>
         <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-md mx-4 rounded-2xl shadow-2xl">
           <DialogHeader className="text-center pb-6">
             <div className="mx-auto w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mb-4">
@@ -207,13 +283,15 @@ export const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProp
               <Button 
                 onClick={sendOtp}
                 className="w-full h-12 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-colors"
-                disabled={isLoading || !phoneNumber}
+                disabled={isLoading || !phoneNumber || countdown > 0}
               >
                 {isLoading ? (
                   <div className="flex items-center space-x-2">
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     <span>Sending OTP...</span>
                   </div>
+                ) : countdown > 0 ? (
+                  `Wait ${countdown}s`
                 ) : (
                   "Send OTP"
                 )}
@@ -270,9 +348,9 @@ export const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProp
                     onClick={sendOtp}
                     variant="outline"
                     className="flex-1 h-10"
-                    disabled={isLoading}
+                    disabled={isLoading || countdown > 0}
                   >
-                    Resend OTP
+                    {countdown > 0 ? `Resend (${countdown}s)` : "Resend OTP"}
                   </Button>
                 </div>
               </div>
