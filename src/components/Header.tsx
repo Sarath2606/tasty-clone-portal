@@ -27,7 +27,12 @@ export const Header = ({ onLoginClick }: HeaderProps) => {
         </nav>
         
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="icon" className="text-white hover:text-green-500">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-white hover:text-green-500"
+            onClick={onLoginClick}
+          >
             <User className="h-5 w-5" />
           </Button>
           <Button variant="ghost" size="icon" className="text-white hover:text-green-500 relative">
