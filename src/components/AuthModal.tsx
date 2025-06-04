@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { RecaptchaVerifier, signInWithPhoneNumber, PhoneAuthProvider, signInWithCredential } from "firebase/auth";
+import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Phone } from "lucide-react";
@@ -21,7 +21,7 @@ export const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProp
   const [phoneNumber, setPhoneNumber] = useState("");
   const [countryCode, setCountryCode] = useState("+1");
   const [otp, setOtp] = useState("");
-  const [verificationId, setVerificationId] = useState("");
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
@@ -57,22 +57,40 @@ export const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProp
   };
 
   const setupRecaptcha = () => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        size: 'invisible',
-        callback: () => {
-          console.log('reCAPTCHA solved');
-        },
-        'expired-callback': () => {
-          console.log('reCAPTCHA expired');
-          // Reset recaptcha on expiry
-          if (window.recaptchaVerifier) {
-            window.recaptchaVerifier.clear();
-            window.recaptchaVerifier = undefined;
-          }
-        }
-      });
+    // Clear any existing recaptcha verifier first
+    if (window.recaptchaVerifier) {
+      try {
+        window.recaptchaVerifier.clear();
+      } catch (error) {
+        console.log('Error clearing existing recaptcha:', error);
+      }
+      window.recaptchaVerifier = undefined;
     }
+
+    // Create new RecaptchaVerifier following official documentation
+    window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+      size: 'invisible',
+      callback: (response: string) => {
+        console.log('reCAPTCHA solved, response:', response);
+      },
+      'expired-callback': () => {
+        console.log('reCAPTCHA expired');
+        toast({
+          title: "Verification Expired",
+          description: "Please try again",
+          variant: "destructive",
+        });
+        // Reset recaptcha on expiry
+        if (window.recaptchaVerifier) {
+          try {
+            window.recaptchaVerifier.clear();
+          } catch (error) {
+            console.log('Error clearing expired recaptcha:', error);
+          }
+          window.recaptchaVerifier = undefined;
+        }
+      }
+    });
   };
 
   const sendOtp = async () => {
@@ -96,20 +114,15 @@ export const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProp
 
     setIsLoading(true);
     try {
-      // Clear any existing recaptcha verifier
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-        window.recaptchaVerifier = undefined;
-      }
-
       setupRecaptcha();
-      const appVerifier = window.recaptchaVerifier;
+      const appVerifier = window.recaptchaVerifier!;
       const fullPhoneNumber = `${countryCode}${phoneNumber}`;
       
       console.log('Sending OTP to:', fullPhoneNumber);
       
+      // Follow official documentation pattern
       const confirmationResult = await signInWithPhoneNumber(auth, fullPhoneNumber, appVerifier);
-      setVerificationId(confirmationResult.verificationId);
+      setConfirmationResult(confirmationResult);
       setIsOtpSent(true);
       
       // Start cooldown to prevent spam requests
@@ -124,17 +137,18 @@ export const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProp
       let errorMessage = "Failed to send OTP. Please try again.";
       let cooldownTime = 30;
       
+      // Handle specific Firebase error codes from documentation
       if (error.code === "auth/invalid-phone-number") {
         errorMessage = "Invalid phone number format";
         cooldownTime = 0;
       } else if (error.code === "auth/too-many-requests") {
-        errorMessage = "Too many requests. Please wait 5 minutes before trying again.";
+        errorMessage = "Too many requests. Please wait before trying again.";
         cooldownTime = 300; // 5 minutes
       } else if (error.code === "auth/quota-exceeded") {
         errorMessage = "SMS quota exceeded. Please try again later.";
         cooldownTime = 300;
       } else if (error.code === "auth/captcha-check-failed") {
-        errorMessage = "Captcha verification failed. Please try again.";
+        errorMessage = "Verification failed. Please try again.";
         cooldownTime = 60;
       }
       
@@ -142,9 +156,25 @@ export const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProp
         startCountdown(cooldownTime);
       }
       
-      // Clear recaptcha on error
+      // Reset recaptcha on error as per documentation
       if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
+        try {
+          if (window.recaptchaWidgetId) {
+            (window as any).grecaptcha?.reset(window.recaptchaWidgetId);
+          } else {
+            window.recaptchaVerifier.render().then((widgetId: string) => {
+              (window as any).grecaptcha?.reset(widgetId);
+            });
+          }
+        } catch (resetError) {
+          console.log('Error resetting recaptcha:', resetError);
+        }
+        
+        try {
+          window.recaptchaVerifier.clear();
+        } catch (clearError) {
+          console.log('Error clearing recaptcha:', clearError);
+        }
         window.recaptchaVerifier = undefined;
       }
       
@@ -168,10 +198,22 @@ export const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProp
       return;
     }
 
+    if (!confirmationResult) {
+      toast({
+        title: "Error",
+        description: "No verification in progress. Please request a new OTP.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const credential = PhoneAuthProvider.credential(verificationId, otp);
-      await signInWithCredential(auth, credential);
+      // Follow official documentation pattern for confirmation
+      const result = await confirmationResult.confirm(otp);
+      const user = result.user;
+      
+      console.log('User signed in successfully:', user.uid);
       
       toast({
         title: "Success",
@@ -188,6 +230,8 @@ export const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProp
         errorMessage = "Invalid verification code";
       } else if (error.code === "auth/code-expired") {
         errorMessage = "Verification code has expired. Please request a new one.";
+      } else if (error.code === "auth/session-expired") {
+        errorMessage = "Session expired. Please request a new verification code.";
       }
       
       toast({
@@ -204,7 +248,7 @@ export const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProp
     setPhoneNumber("");
     setCountryCode("+1");
     setOtp("");
-    setVerificationId("");
+    setConfirmationResult(null);
     setIsOtpSent(false);
     setCountdown(0);
     if (countdownRef.current) {
@@ -212,7 +256,11 @@ export const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProp
     }
     // Clear recaptcha when resetting
     if (window.recaptchaVerifier) {
-      window.recaptchaVerifier.clear();
+      try {
+        window.recaptchaVerifier.clear();
+      } catch (error) {
+        console.log('Error clearing recaptcha on reset:', error);
+      }
       window.recaptchaVerifier = undefined;
     }
   };
@@ -220,7 +268,7 @@ export const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProp
   const handleBackToPhone = () => {
     setIsOtpSent(false);
     setOtp("");
-    setVerificationId("");
+    setConfirmationResult(null);
   };
 
   const handleClose = () => {
