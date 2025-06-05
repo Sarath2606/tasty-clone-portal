@@ -1,6 +1,6 @@
-
 import { Button } from "@/components/ui/button";
 import { Search, ShoppingCart, Clock, Utensils } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export const HowItWorks = () => {
   const steps = [
@@ -60,9 +60,11 @@ export const HowItWorks = () => {
         </div>
         
         <div className="text-center">
-          <Button className="bg-green-500 hover:bg-green-600 text-white px-8 py-3 text-lg">
-            Order Now
-          </Button>
+          <Link to="/menu">
+            <Button className="bg-green-500 hover:bg-green-600 text-white px-8 py-3 text-lg">
+              Order Now
+            </Button>
+          </Link>
         </div>
       </div>
     </section>

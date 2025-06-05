@@ -1,57 +1,67 @@
-
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, User } from "lucide-react";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useCart } from "@/contexts/CartContext";
 
-interface HeaderProps {
-  onLoginClick: () => void;
-}
+export const Header = () => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { cart } = useCart();
+  const navigate = useNavigate();
 
-export const Header = ({ onLoginClick }: HeaderProps) => {
+  const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
+
   return (
-    <header className="bg-gray-900 border-b border-gray-800 sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-            <span className="text-white font-bold text-sm">M</span>
-          </div>
+    <header className="bg-gray-900 border-b border-gray-800 sticky top-0 z-50 w-full overflow-x-hidden">
+      <div className="container mx-auto px-2 py-4 flex items-center justify-between">
+        <Link to="/" className="flex items-center space-x-2 hover:opacity-90 transition-opacity">
+          <img src="/try.png" alt="MorningTiffin Logo" className="w-8 h-8 object-contain" />
           <span className="text-white text-xl font-bold">
             Morning<span className="text-green-500">Tiffin</span>
           </span>
-        </div>
+        </Link>
         
         <nav className="hidden md:flex space-x-8">
-          <a href="#" className="text-white hover:text-green-500 transition-colors">Home</a>
-          <a href="#" className="text-white hover:text-green-500 transition-colors">Menu</a>
-          <a href="#" className="text-white hover:text-green-500 transition-colors">Plans</a>
+          <Link to="/" className="text-white hover:text-green-500 transition-colors">Home</Link>
+          <Link to="/menu" className="text-white hover:text-green-500 transition-colors">Menu</Link>
         </nav>
         
         <div className="flex items-center space-x-4">
+          <Button variant="ghost" size="icon" className="text-white hover:text-green-500">
+            <User className="h-5 w-5" />
+          </Button>
           <Button 
             variant="ghost" 
             size="icon" 
-            className="text-white hover:text-green-500"
-            onClick={onLoginClick}
+            className="text-white hover:text-green-500 relative"
+            onClick={() => navigate('/cart')}
           >
-            <User className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="text-white hover:text-green-500 relative">
             <ShoppingCart className="h-5 w-5" />
-            <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-              0
-            </span>
+            {totalItems > 0 && (
+              <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                {totalItems}
+              </span>
+            )}
           </Button>
           <Button 
-            className="bg-green-500 hover:bg-green-600 text-white px-6"
-            onClick={onLoginClick}
+            className="bg-green-600 hover:bg-green-700 text-white px-6 hidden md:flex"
+            onClick={() => navigate('/menu')}
           >
-            View Plans
-          </Button>
-          <Button className="bg-green-600 hover:bg-green-700 text-white px-6">
             Order Now
           </Button>
         </div>
       </div>
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden bg-gray-800 border-t border-gray-700">
+          <nav className="container mx-auto px-2 py-4 flex flex-col space-y-4">
+            <Link to="/" className="text-white hover:text-green-500 transition-colors">Home</Link>
+            <Link to="/menu" className="text-white hover:text-green-500 transition-colors">Menu</Link>
+          </nav>
+        </div>
+      )}
     </header>
   );
 };
+

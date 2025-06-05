@@ -1,11 +1,11 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Star } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export const Hero = () => {
   return (
-    <section className="bg-gray-900 py-20">
+    <section className="bg-gray-900 pt-8 pb-20">
       <div className="container mx-auto px-4">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-8">
@@ -33,9 +33,11 @@ export const Hero = () => {
             </div>
             
             <div className="flex space-x-4">
-              <Button className="bg-green-500 hover:bg-green-600 text-white px-8 py-3">
-                Order Now →
-              </Button>
+              <Link to="/menu">
+                <Button className="bg-green-500 hover:bg-green-600 text-white px-8 py-3">
+                  Order Now →
+                </Button>
+              </Link>
               <Button variant="outline" className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white px-8 py-3">
                 View Plans →
               </Button>
