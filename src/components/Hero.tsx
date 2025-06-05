@@ -38,9 +38,11 @@ export const Hero = () => {
                   Order Now →
                 </Button>
               </Link>
-              <Button variant="outline" className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white px-8 py-3">
-                View Plans →
-              </Button>
+              <Link to="/plans">
+                <Button variant="outline" className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white px-8 py-3">
+                  View Plans →
+                </Button>
+              </Link>
             </div>
             
             <div className="flex items-center space-x-4">
