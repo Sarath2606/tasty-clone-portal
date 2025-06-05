@@ -1,29 +1,73 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { useCart } from "@/contexts/CartContext";
+import { toast } from "sonner";
 
 export const FeaturedItems = () => {
   const [activeTab, setActiveTab] = useState("Popular");
+  const { addToCart, cart, updateQuantity } = useCart();
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [showQty, setShowQty] = useState<Record<string, boolean>>({});
+  const [added, setAdded] = useState<Record<string, boolean>>({});
   
   const menuItems = [
     {
+      id: "featured-dosa",
       name: "Dosa",
-      price: "₹60",
+      price: 60,
       image: "🫓",
       description: "Crispy South Indian crepe with chutneys"
     },
     {
+      id: "featured-idly",
       name: "Idly",
-      price: "₹50", 
+      price: 50,
       image: "⚪",
       description: "Soft steamed rice cakes with sambar"
     },
     {
+      id: "featured-bread-omlet",
       name: "Bread Omlet",
-      price: "₹70",
+      price: 70,
       image: "🍳",
       description: "Fluffy omelet with bread and spices"
     }
   ];
+
+  useEffect(() => {
+    // Sync local quantities with cart
+    const q: Record<string, number> = {};
+    const s: Record<string, boolean> = {};
+    cart.forEach((item) => {
+      q[item.id] = item.quantity;
+      if (item.quantity > 0) s[item.id] = true;
+    });
+    setQuantities(q);
+    setShowQty(s);
+  }, [cart]);
+
+  const handleAddToCart = (item: typeof menuItems[0]) => {
+    addToCart({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      image: item.image
+    }, 1);
+    setShowQty((prev) => ({ ...prev, [item.id]: true }));
+    setAdded((prev) => ({ ...prev, [item.id]: true }));
+    setTimeout(() => setAdded((prev) => ({ ...prev, [item.id]: false })), 600);
+    toast.success(`${item.name} added to cart!`);
+  };
+
+  const handleQuantityChange = (id: string, change: number, item: typeof menuItems[0]) => {
+    const newQuantity = (quantities[id] || 0) + change;
+    if (newQuantity > 0) {
+      updateQuantity(id, newQuantity);
+    } else {
+      updateQuantity(id, 0);
+      setShowQty((prev) => ({ ...prev, [id]: false }));
+    }
+  };
 
   return (
     <section className="bg-black py-16">
@@ -64,12 +108,39 @@ export const FeaturedItems = () => {
               <div className="p-6">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-white text-xl font-semibold">{item.name}</h3>
-                  <span className="text-green-500 text-xl font-bold">{item.price}</span>
+                  <span className="text-green-500 text-xl font-bold">₹{item.price}</span>
                 </div>
                 <p className="text-gray-400 mb-6">{item.description}</p>
-                <Button className="w-full bg-green-500 hover:bg-green-600 text-white">
-                  Add to Cart
-                </Button>
+                {!showQty[item.id] ? (
+                  <Button 
+                    className={`w-full bg-green-500 hover:bg-green-600 text-white transition-all duration-200 active:scale-95 ${added[item.id] ? "scale-105 bg-green-400" : ""}`}
+                    onClick={() => handleAddToCart(item)}
+                  >
+                    {added[item.id] ? "Added!" : "Add to Cart"}
+                  </Button>
+                ) : (
+                  <div className="flex items-center justify-center w-full gap-3 animate-fade-in">
+                    <Button 
+                      size="icon" 
+                      variant="outline" 
+                      onClick={() => handleQuantityChange(item.id, -1, item)} 
+                      className="transition-transform duration-150 active:scale-90"
+                    >
+                      -
+                    </Button>
+                    <span className="w-8 text-center text-lg font-semibold text-white">
+                      {quantities[item.id] || 0}
+                    </span>
+                    <Button 
+                      size="icon" 
+                      variant="outline" 
+                      onClick={() => handleQuantityChange(item.id, 1, item)} 
+                      className="transition-transform duration-150 active:scale-110"
+                    >
+                      +
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           ))}
