@@ -27,7 +27,9 @@ export const Hero = () => {
                 />
                 <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
               </div>
-              <Button className="bg-green-500 hover:bg-green-600 px-8">
+              <Button 
+                className="bg-green-500 hover:bg-green-600 px-8"
+              >
                 Search
               </Button>
             </div>

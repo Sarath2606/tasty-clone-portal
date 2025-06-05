@@ -95,8 +95,6 @@ const Menu = () => {
   useEffect(() => {
     const searchId = location.state?.search;
     const category = location.state?.category;
-    const shouldScroll = location.state?.scrollTo;
-
     if (searchId && itemRefs.current[searchId]) {
       setTimeout(() => {
         itemRefs.current[searchId].scrollIntoView({
@@ -109,25 +107,13 @@ const Menu = () => {
           element.classList.remove('highlight-item');
         }, 2000);
       }, 100);
-    } else if (category && shouldScroll) {
-      // Find the matching section
-      const section = MENU_DATA.find(s => s.section === category);
-      if (section) {
-        setTimeout(() => {
-          const sectionElement = sectionRefs.current[section.section];
-          if (sectionElement) {
-            // Calculate the offset to account for the header
-            const headerOffset = 100;
-            const elementPosition = sectionElement.getBoundingClientRect().top;
-            const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-
-            window.scrollTo({
-              top: offsetPosition,
-              behavior: 'smooth'
-            });
-          }
-        }, 100);
-      }
+    } else if (category && sectionRefs.current[category]) {
+      setTimeout(() => {
+        sectionRefs.current[category].scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+      }, 100);
     }
   }, [location.state]);
 
@@ -154,16 +140,15 @@ const Menu = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-black text-white">
       <div className="py-8">
         <div className="max-w-5xl mx-auto px-4">
           <h1 className="text-3xl font-bold mb-8 text-green-400">Menu</h1>
           {MENU_DATA.map((section) => (
-            <div key={section.section} className="mb-10 scroll-transition">
+            <div key={section.section} className="mb-10">
               <h2
                 ref={el => sectionRefs.current[section.section] = el}
                 className="text-2xl font-semibold mb-4 text-green-300"
-                id={`${section.section.toLowerCase()}-section`}
               >
                 {section.section}
               </h2>
@@ -172,7 +157,7 @@ const Menu = () => {
                   <Card 
                     key={item.id} 
                     ref={el => itemRefs.current[item.id] = el}
-                    className="bg-white border-green-500/20 hover:shadow-lg transition-all duration-300 flex flex-col justify-between hover:scale-[1.02]"
+                    className="bg-white border-green-500/20 hover:shadow-lg transition-all duration-300 flex flex-col justify-between"
                   >
                     <CardHeader>
                       <img src={item.image} alt={item.name} className="w-full h-40 object-cover rounded-md mb-2" />
@@ -184,30 +169,16 @@ const Menu = () => {
                     <CardFooter>
                       {!showQty[item.id] ? (
                         <Button
-                          className={`w-full bg-green-500 hover:bg-green-600 text-black font-semibold button-transition active:scale-95 ${added[item.id] ? "scale-105 bg-green-400" : ""}`}
+                          className={`w-full bg-green-500 hover:bg-green-600 text-black font-semibold transition-all duration-200 active:scale-95 ${added[item.id] ? "scale-105 bg-green-400" : ""}`}
                           onClick={() => handleAddToCart(item)}
                         >
                           {added[item.id] ? "Added!" : "Add to Cart"}
                         </Button>
                       ) : (
                         <div className="flex items-center justify-center w-full gap-3 animate-fade-in">
-                          <Button 
-                            size="icon" 
-                            variant="outline" 
-                            onClick={() => handleQuantityChange(item.id, -1, item)} 
-                            className="button-transition active:scale-90"
-                          >
-                            -
-                          </Button>
+                          <Button size="icon" variant="outline" onClick={() => handleQuantityChange(item.id, -1, item)} className="transition-transform duration-150 active:scale-90">-</Button>
                           <span className="w-8 text-center text-lg font-semibold text-black">{quantities[item.id] || 0}</span>
-                          <Button 
-                            size="icon" 
-                            variant="outline" 
-                            onClick={() => handleQuantityChange(item.id, 1, item)} 
-                            className="button-transition active:scale-110"
-                          >
-                            +
-                          </Button>
+                          <Button size="icon" variant="outline" onClick={() => handleQuantityChange(item.id, 1, item)} className="transition-transform duration-150 active:scale-110">+</Button>
                         </div>
                       )}
                     </CardFooter>
@@ -228,7 +199,7 @@ const Menu = () => {
               <span className="text-xl font-bold text-green-400">₹{getCartTotal()}</span>
             </div>
             <Button 
-              className="bg-green-500 hover:bg-green-600 text-black font-semibold text-lg px-6 py-4 button-transition active:scale-95"
+              className="bg-green-500 hover:bg-green-600 text-black font-semibold text-lg px-6 py-4 transition-transform duration-200 active:scale-95"
               onClick={handleCheckout}
             >
               Proceed to Cart

@@ -1,41 +1,26 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
 import { Layout } from "@/components/Layout";
-import Index from "./pages/Index";
-import Menu from "./pages/Menu";
-import Cart from "./pages/Cart";
-import Checkout from "./pages/Checkout";
-import Plans from "./pages/Plans";
-import NotFound from "./pages/NotFound";
+import Index from "@/pages/Index";
+import { Menu } from "@/pages/Menu";
+import Checkout from "@/pages/Checkout";
+import Plans from "@/pages/Plans";
+import Cart from "@/pages/Cart";
 
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+export const App = () => {
+  return (
+    <Router>
       <CartProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route element={<Layout />}>
-              <Route path="/" element={<Index />} />
-              <Route path="/menu" element={<Menu />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/checkout" element={<Checkout />} />
-              <Route path="/plans" element={<Plans />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<Index />} />
+            <Route path="/menu" element={<Menu />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/plans" element={<Plans />} />
+            <Route path="/cart" element={<Cart />} />
+          </Route>
+        </Routes>
       </CartProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
-
-export default App;
+    </Router>
+  );
+};
