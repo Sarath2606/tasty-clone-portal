@@ -1,13 +1,15 @@
-import { Button } from "@/components/ui/button";
-import { ShoppingCart, User } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
+import { ShoppingCart, User } from "lucide-react";
+import { useUser } from "@clerk/clerk-react";
 
 export const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { cart } = useCart();
   const navigate = useNavigate();
+  const { isSignedIn } = useUser();
 
   const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
 
@@ -20,34 +22,30 @@ export const Header = () => {
             Morning<span className="text-green-500">Tiffin</span>
           </span>
         </Link>
-        
+
         <nav className="hidden md:flex space-x-8">
           <Link to="/" className="text-white hover:text-green-500 transition-colors">Home</Link>
           <Link to="/menu" className="text-white hover:text-green-500 transition-colors">Menu</Link>
         </nav>
         
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="icon" className="text-white hover:text-green-500">
+          <Link to="/cart" className="relative">
+            <Button variant="ghost" size="icon" className="text-white hover:text-green-500">
+              <ShoppingCart className="h-6 w-6" />
+              {totalItems > 0 && (
+                <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {totalItems}
+                </span>
+              )}
+            </Button>
+          </Link>
+          <Button
+            variant="outline"
+            size="icon"
+            className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700 hover:text-green-500"
+            onClick={() => navigate(isSignedIn ? '/profile' : '/sign-in')}
+          >
             <User className="h-5 w-5" />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="text-white hover:text-green-500 relative"
-            onClick={() => navigate('/cart')}
-          >
-            <ShoppingCart className="h-5 w-5" />
-            {totalItems > 0 && (
-              <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                {totalItems}
-              </span>
-            )}
-          </Button>
-          <Button 
-            className="bg-green-600 hover:bg-green-700 text-white px-6 hidden md:flex"
-            onClick={() => navigate('/menu')}
-          >
-            Order Now
           </Button>
         </div>
       </div>

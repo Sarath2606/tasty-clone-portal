@@ -69,7 +69,7 @@ const MENU_DATA = [
   },
 ];
 
-export const Menu = () => {
+const Menu = () => {
   const { cart, addToCart, updateQuantity, getCartTotal } = useCart();
   const [quantities, setQuantities] = useState({});
   const [showQty, setShowQty] = useState({});
@@ -227,4 +227,6 @@ export const Menu = () => {
       `}</style>
     </div>
   );
-}; 
+};
+
+export default Menu; 
