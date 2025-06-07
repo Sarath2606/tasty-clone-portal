@@ -1,15 +1,12 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
-import { ShoppingCart, User } from "lucide-react";
-import { useUser } from "@clerk/clerk-react";
+import { ShoppingCart } from "lucide-react";
 
 export const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { cart } = useCart();
-  const navigate = useNavigate();
-  const { isSignedIn } = useUser();
 
   const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
 
@@ -39,14 +36,6 @@ export const Header = () => {
               )}
             </Button>
           </Link>
-          <Button
-            variant="outline"
-            size="icon"
-            className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700 hover:text-green-500"
-            onClick={() => navigate(isSignedIn ? '/profile' : '/sign-in')}
-          >
-            <User className="h-5 w-5" />
-          </Button>
         </div>
       </div>
 
