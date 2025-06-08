@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, User } from "lucide-react";
+import { AuthModal } from "@/components/AuthModal";
 
 export const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -36,6 +37,11 @@ export const Header = () => {
               )}
             </Button>
           </Link>
+          <AuthModal>
+            <Button variant="ghost" size="icon" className="text-white hover:text-green-500">
+              <User className="h-6 w-6" />
+            </Button>
+          </AuthModal>
         </div>
       </div>
 

@@ -1,4 +1,3 @@
-
 export const Footer = () => {
   return (
     <footer className="bg-gray-900 border-t border-gray-800 py-12">
@@ -6,9 +5,7 @@ export const Footer = () => {
         <div className="grid md:grid-cols-4 gap-8">
           <div>
             <div className="flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-sm">M</span>
-              </div>
+              <img src="/try.png" alt="MorningTiffin Logo" className="w-12 h-12 object-contain rounded-full" />
               <span className="text-white text-xl font-bold">
                 Morning<span className="text-green-500">Tiffin</span>
               </span>

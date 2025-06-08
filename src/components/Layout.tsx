@@ -2,7 +2,6 @@ import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { Outlet, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Toaster } from "sonner";
 
 export const Layout = () => {
   const location = useLocation();
@@ -24,7 +23,6 @@ export const Layout = () => {
         </AnimatePresence>
       </main>
       <Footer />
-      <Toaster position="top-center" richColors />
     </div>
   );
 }; 

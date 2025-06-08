@@ -248,7 +248,7 @@ export default function Checkout() {
                     Processing...
                   </div>
                 ) : (
-                  `Place Order - ₹${total.toFixed(2)}`
+                  "Place Order"
                 )}
               </Button>
             </CardContent>
