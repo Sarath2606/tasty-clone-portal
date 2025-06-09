@@ -3,6 +3,8 @@ import {
   Dialog,
   DialogTrigger,
   DialogContent,
+  DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +61,8 @@ export const AuthModal: React.FC<{ children?: React.ReactNode }> = ({ children }
           transform: 'translate(-50%, -50%)',
         }}
       >
+        <DialogTitle className="sr-only">Authentication</DialogTitle>
+        <DialogDescription className="sr-only">Sign in or create an account to access tasty recipes</DialogDescription>
         <img src="/try.png" alt="MorningTiffin Logo" className="w-14 h-14 object-contain rounded-full mb-5" />
         <h2 className="text-2xl font-bold text-center mb-1">Unlimited free access to tasty recipes</h2>
         <p className="text-gray-500 text-center mb-6 text-sm">Sign up to get delicious food inspiration delivered to your inbox</p>

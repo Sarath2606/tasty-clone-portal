@@ -2,14 +2,27 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
-import { ShoppingCart, User } from "lucide-react";
+import { ShoppingCart, User, LogOut } from "lucide-react";
 import { AuthModal } from "@/components/AuthModal";
+import { useAuth } from "@/contexts/AuthContext";
+import { auth } from "@/firebase";
+import { toast } from "sonner";
 
 export const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { cart } = useCart();
+  const { user } = useAuth();
 
   const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
+
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      toast.success('Logged out successfully');
+    } catch (error) {
+      toast.error('Failed to log out');
+    }
+  };
 
   return (
     <header className="bg-gray-900 border-b border-gray-800 sticky top-0 z-50 w-full overflow-x-hidden">
@@ -37,11 +50,22 @@ export const Header = () => {
               )}
             </Button>
           </Link>
-          <AuthModal>
-            <Button variant="ghost" size="icon" className="text-white hover:text-green-500">
-              <User className="h-6 w-6" />
-            </Button>
-          </AuthModal>
+          
+          {user ? (
+            <div className="flex items-center space-x-4">
+              <Link to="/profile">
+                <Button variant="ghost" size="icon" className="text-white hover:text-green-500">
+                  <User className="h-6 w-6" />
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <AuthModal>
+              <Button variant="ghost" size="icon" className="text-white hover:text-green-500">
+                <User className="h-6 w-6" />
+              </Button>
+            </AuthModal>
+          )}
         </div>
       </div>
 
@@ -51,6 +75,11 @@ export const Header = () => {
           <nav className="container mx-auto px-2 py-4 flex flex-col space-y-4">
             <Link to="/" className="text-white hover:text-green-500 transition-colors">Home</Link>
             <Link to="/menu" className="text-white hover:text-green-500 transition-colors">Menu</Link>
+            {user && (
+              <>
+                <Link to="/profile" className="text-white hover:text-green-500 transition-colors">Profile</Link>
+              </>
+            )}
           </nav>
         </div>
       )}
