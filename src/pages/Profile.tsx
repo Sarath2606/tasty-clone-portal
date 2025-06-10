@@ -157,10 +157,10 @@ const Profile = () => {
   // Use your app's section names and icons
   const sectionLinks = [
     { id: 'orders', icon: Package, label: 'My Orders', to: '/profile/orders' },
+    { id: 'order-history', icon: History, label: 'Order History', to: '/profile/order-history' },
     { id: 'subscriptions', icon: SubscriptionIcon, label: 'Subscriptions', to: '/profile/subscriptions' },
     { id: 'address', icon: MapPin, label: 'Address', to: '/profile/address' },
     { id: 'payments', icon: CreditCard, label: 'Payments', to: '/profile/payments' },
-    { id: 'history', icon: History, label: 'Order History', to: '/profile/history' },
     { id: 'notifications', icon: Bell, label: 'Notifications', to: '/profile/notifications' },
     { id: 'support', icon: HelpCircle, label: 'Support', to: '/profile/support' },
     { id: 'test', icon: HelpCircle, label: 'Firestore Test', to: '/profile/test' },
