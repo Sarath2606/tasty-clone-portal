@@ -44,6 +44,8 @@ export interface PaymentMethod {
   id: string;
   type: 'card' | 'upi' | 'netbanking';
   last4?: string;
+  upiId?: string;
+  bankName?: string;
   isDefault: boolean;
 }
 

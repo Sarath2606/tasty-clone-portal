@@ -3,7 +3,7 @@ import { useUserProfile } from '@/contexts/UserProfileContext';
 import { Order, Notification } from '@/lib/firestore';
 import { Timestamp } from 'firebase/firestore';
 
-export const ProfileTest: React.FC = () => {
+const ProfileTest = () => {
   const {
     profile,
     loading,
@@ -133,4 +133,6 @@ export const ProfileTest: React.FC = () => {
       </div>
     </div>
   );
-}; 
+};
+
+export default ProfileTest; 

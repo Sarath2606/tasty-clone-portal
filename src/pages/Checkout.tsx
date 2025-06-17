@@ -6,11 +6,20 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useCart } from "@/contexts/CartContext";
 import { useNavigate } from "react-router-dom";
 
+interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+}
+
 export default function Checkout() {
-  const { cart, getCartTotal, clearCart } = useCart();
+  const { cart, getCartTotal, removeAllItems } = useCart();
   const navigate = useNavigate();
   const [coupon, setCoupon] = useState("");
   const [agreed, setAgreed] = useState(false);
@@ -19,6 +28,7 @@ export default function Checkout() {
   const [deliveryDate, setDeliveryDate] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deliveryAddress, setDeliveryAddress] = useState("");
 
   // Tax rate (5%)
   const TAX_RATE = 0.05;
@@ -40,38 +50,6 @@ export default function Checkout() {
     }
   }, [cart, navigate]);
 
-  // Generate next 7 days dates
-  const getNextDays = () => {
-    const dates = [];
-    for (let i = 0; i < 7; i++) {
-      const date = new Date();
-      date.setDate(date.getDate() + i);
-      dates.push({
-        value: date.toISOString().split('T')[0],
-        label: date.toLocaleDateString('en-US', { 
-          weekday: 'short',
-          month: 'short',
-          day: 'numeric'
-        })
-      });
-    }
-    return dates;
-  };
-
-  // Generate time slots from 5:30 AM to 10:00 AM with 30-minute intervals
-  const timeSlots = [
-    "5:30 AM",
-    "6:00 AM",
-    "6:30 AM",
-    "7:00 AM",
-    "7:30 AM",
-    "8:00 AM",
-    "8:30 AM",
-    "9:00 AM",
-    "9:30 AM",
-    "10:00 AM"
-  ];
-
   const handleCheckout = () => {
     if (!deliveryDate || !deliveryTime || isProcessing) return;
 
@@ -80,7 +58,7 @@ export default function Checkout() {
 
     // Placeholder for actual checkout logic
     setTimeout(() => {
-      clearCart();
+      removeAllItems();
       navigate('/order-confirmation');
     }, 2000);
   };
@@ -149,7 +127,13 @@ export default function Checkout() {
               <div className="space-y-4">
                 <Input placeholder="Full Name" />
                 <Input placeholder="Phone Number" type="tel" />
-                <Input placeholder="Delivery Address" />
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="Delivery Address" 
+                    value={deliveryAddress}
+                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                  />
+                </div>
                 
                 <Select value={addressType} onValueChange={setAddressType}>
                   <SelectTrigger>
@@ -168,19 +152,7 @@ export default function Checkout() {
                 <div className="space-y-3">
                   <Label>Select Delivery Date</Label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                    {getNextDays().map((date) => (
-                      <button
-                        key={date.value}
-                        onClick={() => setDeliveryDate(date.value)}
-                        className={`p-3 rounded-lg border text-center transition-all duration-200 ${
-                          deliveryDate === date.value
-                            ? 'bg-green-500 text-white border-green-500'
-                            : 'border-gray-300 hover:border-green-500 hover:bg-green-50'
-                        }`}
-                      >
-                        {date.label}
-                      </button>
-                    ))}
+                    {/* Delivery Date Selection content will be removed as per the new code block */}
                   </div>
                 </div>
 
@@ -189,19 +161,7 @@ export default function Checkout() {
                   <div className="space-y-3">
                     <Label>Select Delivery Time</Label>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                      {timeSlots.map((slot) => (
-                        <button
-                          key={slot}
-                          onClick={() => setDeliveryTime(slot)}
-                          className={`p-3 rounded-lg border text-center transition-all duration-200 ${
-                            deliveryTime === slot
-                              ? 'bg-green-500 text-white border-green-500'
-                              : 'border-gray-300 hover:border-green-500 hover:bg-green-50'
-                          }`}
-                        >
-                          {slot}
-                        </button>
-                      ))}
+                      {/* Delivery Time Selection content will be removed as per the new code block */}
                     </div>
                   </div>
                 )}

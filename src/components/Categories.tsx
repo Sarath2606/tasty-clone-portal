@@ -11,12 +11,7 @@ export const Categories = () => {
   ];
 
   const handleCategoryClick = (category: string) => {
-    navigate('/menu', { 
-      state: { 
-        category,
-        scrollTo: true
-      }
-    });
+    navigate(`/menu?category=${encodeURIComponent(category)}`);
   };
 
   return (

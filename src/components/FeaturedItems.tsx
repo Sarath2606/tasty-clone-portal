@@ -12,24 +12,24 @@ export const FeaturedItems = () => {
   
   const menuItems = [
     {
-      id: "featured-dosa",
+      id: "dosa",
       name: "Dosa",
       price: 60,
-      image: "🫓",
+      image: "https://ik.imagekit.io/miht812xe/240_F_397466683_4U8hMaUgWdFPNc8KMKUQ4aH2qR1yG0sA.jpg?updatedAt=1748076573585",
       description: "Crispy South Indian crepe with chutneys"
     },
     {
-      id: "featured-idly",
+      id: "idly",
       name: "Idly",
       price: 50,
-      image: "⚪",
+      image: "https://ik.imagekit.io/miht812xe/Idly%20photo.jpg?updatedAt=1748076573316",
       description: "Soft steamed rice cakes with sambar"
     },
     {
-      id: "featured-bread-omlet",
+      id: "bread-omlet",
       name: "Bread Omlet",
       price: 70,
-      image: "🍳",
+      image: "https://ik.imagekit.io/miht812xe/bread.jpeg?updatedAt=1748435903011",
       description: "Fluffy omelet with bread and spices"
     }
   ];
@@ -47,12 +47,8 @@ export const FeaturedItems = () => {
   }, [cart]);
 
   const handleAddToCart = (item: typeof menuItems[0]) => {
-    addToCart({
-      id: item.id,
-      name: item.name,
-      price: item.price,
-      image: item.image
-    }, 1);
+    // Pass the item directly to addToCart, just like in the Menu page
+    addToCart(item, 1);
     setShowQty((prev) => ({ ...prev, [item.id]: true }));
     setAdded((prev) => ({ ...prev, [item.id]: true }));
     setTimeout(() => setAdded((prev) => ({ ...prev, [item.id]: false })), 600);
@@ -102,8 +98,15 @@ export const FeaturedItems = () => {
         <div className="grid md:grid-cols-3 gap-8">
           {menuItems.map((item, index) => (
             <div key={index} className="bg-gray-900 rounded-2xl overflow-hidden border border-gray-800">
-              <div className="h-48 bg-gradient-to-br from-orange-400 to-yellow-600 flex items-center justify-center">
-                <span className="text-6xl">{item.image}</span>
+              <div className="h-48 relative">
+                <img 
+                  src={item.image} 
+                  alt={item.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = '/try.png';
+                  }}
+                />
               </div>
               <div className="p-6">
                 <div className="flex justify-between items-center mb-4">

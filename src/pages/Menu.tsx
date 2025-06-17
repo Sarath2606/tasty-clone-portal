@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 const MENU_DATA = [
   {
@@ -76,8 +76,10 @@ const Menu = () => {
   const [added, setAdded] = useState({});
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const itemRefs = useRef({});
   const sectionRefs = useRef({});
+  const [isPageLoaded, setIsPageLoaded] = useState(false);
 
   useEffect(() => {
     // Sync local quantities with cart
@@ -91,10 +93,18 @@ const Menu = () => {
     setShowQty(s);
   }, [cart]);
 
+  // Set page as loaded after initial render
+  useEffect(() => {
+    setIsPageLoaded(true);
+  }, []);
+
   // Handle search state and scroll to item or section
   useEffect(() => {
+    if (!isPageLoaded) return;
+
     const searchId = location.state?.search;
-    const category = location.state?.category;
+    const category = searchParams.get('category');
+    
     if (searchId && itemRefs.current[searchId]) {
       setTimeout(() => {
         itemRefs.current[searchId].scrollIntoView({
@@ -107,15 +117,42 @@ const Menu = () => {
           element.classList.remove('highlight-item');
         }, 2000);
       }, 100);
-    } else if (category && sectionRefs.current[category]) {
+    } else if (category) {
+      // Wait for the page to be fully rendered
       setTimeout(() => {
-        sectionRefs.current[category].scrollIntoView({
-          behavior: 'smooth',
-          block: 'center'
-        });
-      }, 100);
+        // Normalize the category name to match section names
+        const normalizedCategory = category.toLowerCase();
+        
+        // Find the matching section
+        const matchingSection = MENU_DATA.find(
+          section => section.section.toLowerCase() === normalizedCategory
+        )?.section;
+
+        if (matchingSection && sectionRefs.current[matchingSection]) {
+          const sectionElement = sectionRefs.current[matchingSection];
+          
+          // Ensure the element is in the DOM and scroll to it
+          if (sectionElement) {
+            // Calculate the offset to account for the header
+            const headerOffset = 100;
+            const elementPosition = sectionElement.getBoundingClientRect().top;
+            const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+            window.scrollTo({
+              top: offsetPosition,
+              behavior: 'smooth'
+            });
+            
+            // Add highlight effect to the section
+            sectionElement.classList.add('highlight-section');
+            setTimeout(() => {
+              sectionElement.classList.remove('highlight-section');
+            }, 2000);
+          }
+        }
+      }, 500); // Increased timeout to ensure DOM is ready
     }
-  }, [location.state]);
+  }, [location.state, searchParams, isPageLoaded]);
 
   const handleAddToCart = (item) => {
     addToCart(item, 1);
@@ -141,6 +178,22 @@ const Menu = () => {
 
   return (
     <div className="min-h-screen bg-black text-white">
+      <style>
+        {`
+          .highlight-section {
+            animation: highlight 2s ease-in-out;
+          }
+          
+          @keyframes highlight {
+            0%, 100% {
+              background-color: transparent;
+            }
+            50% {
+              background-color: rgba(34, 197, 94, 0.2);
+            }
+          }
+        `}
+      </style>
       <div className="py-8">
         <div className="max-w-5xl mx-auto px-4">
           <h1 className="text-3xl font-bold mb-8 text-green-400">Menu</h1>
@@ -148,7 +201,7 @@ const Menu = () => {
             <div key={section.section} className="mb-10">
               <h2
                 ref={el => sectionRefs.current[section.section] = el}
-                className="text-2xl font-semibold mb-4 text-green-300"
+                className="text-2xl font-semibold mb-4 text-green-300 transition-all duration-300"
               >
                 {section.section}
               </h2>
@@ -220,6 +273,14 @@ const Menu = () => {
           animation: highlight 2s ease;
         }
         @keyframes highlight {
+          0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+          50% { transform: scale(1.05); box-shadow: 0 0 20px 10px rgba(34, 197, 94, 0.3); }
+          100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        .highlight-section {
+          animation: highlightSection 2s ease;
+        }
+        @keyframes highlightSection {
           0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
           50% { transform: scale(1.05); box-shadow: 0 0 20px 10px rgba(34, 197, 94, 0.3); }
           100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }

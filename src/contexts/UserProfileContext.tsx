@@ -6,6 +6,7 @@ import {
   Address,
   Order,
   Notification,
+  PaymentMethod,
   createUserProfile,
   getUserProfile,
   updateUserProfile,
@@ -28,6 +29,9 @@ interface UserProfileContextType {
   addNewNotification: (notification: Omit<Notification, 'id' | 'createdAt'>) => Promise<void>;
   getLatestOrders: (limit?: number) => Promise<Order[]>;
   getUnreadUserNotifications: () => Promise<Notification[]>;
+  addPaymentMethod: (paymentMethod: Omit<PaymentMethod, 'id'>) => Promise<void>;
+  removePaymentMethod: (paymentId: string) => Promise<void>;
+  setDefaultPaymentMethod: (paymentId: string) => Promise<void>;
 }
 
 const UserProfileContext = createContext<UserProfileContextType | undefined>(undefined);
@@ -221,16 +225,88 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
+  const addPaymentMethod = async (paymentMethod: Omit<PaymentMethod, 'id'>) => {
+    if (!profile) {
+      toast.error('No profile found');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const newPaymentMethod = {
+        ...paymentMethod,
+        id: crypto.randomUUID()
+      };
+      const updatedPaymentMethods = [...profile.paymentMethods, newPaymentMethod];
+      await updateProfile({ paymentMethods: updatedPaymentMethods });
+      toast.success('Payment method added successfully');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to add payment method';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const removePaymentMethod = async (paymentId: string) => {
+    if (!profile) {
+      toast.error('No profile found');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const updatedPaymentMethods = profile.paymentMethods.filter(
+        (method) => method.id !== paymentId
+      );
+      await updateProfile({ paymentMethods: updatedPaymentMethods });
+      toast.success('Payment method removed successfully');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to remove payment method';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const setDefaultPaymentMethod = async (paymentId: string) => {
+    if (!profile) {
+      toast.error('No profile found');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const updatedPaymentMethods = profile.paymentMethods.map((method) => ({
+        ...method,
+        isDefault: method.id === paymentId
+      }));
+      await updateProfile({ paymentMethods: updatedPaymentMethods });
+      toast.success('Default payment method updated');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update default payment method';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const value = {
-        profile,
-        loading,
-        error,
-        updateProfile,
+    profile,
+    loading,
+    error,
+    updateProfile,
     addNewAddress,
     addNewOrder,
     addNewNotification,
     getLatestOrders,
-    getUnreadUserNotifications
+    getUnreadUserNotifications,
+    addPaymentMethod,
+    removePaymentMethod,
+    setDefaultPaymentMethod
   };
 
   return (

@@ -1,4 +1,15 @@
+import { Link, useNavigate } from "react-router-dom";
+
 export const Footer = () => {
+  const navigate = useNavigate();
+
+  const handleNavigation = (path: string) => {
+    // Navigate to the path
+    navigate(path);
+    // Scroll to top of the page
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <footer className="bg-gray-900 border-t border-gray-800 py-12">
       <div className="container mx-auto px-4">
@@ -18,20 +29,20 @@ export const Footer = () => {
           <div>
             <h3 className="text-white font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2">
-              <li><a href="#" className="text-gray-400 hover:text-green-500">Home</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-green-500">Menu</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-green-500">Plans</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-green-500">Contact</a></li>
+              <li><button onClick={() => handleNavigation('/')} className="text-gray-400 hover:text-green-500">Home</button></li>
+              <li><button onClick={() => handleNavigation('/menu')} className="text-gray-400 hover:text-green-500">Menu</button></li>
+              <li><button onClick={() => handleNavigation('/plans')} className="text-gray-400 hover:text-green-500">Plans</button></li>
+              <li><button onClick={() => handleNavigation('/profile/support')} className="text-gray-400 hover:text-green-500">Contact</button></li>
             </ul>
           </div>
           
           <div>
             <h3 className="text-white font-semibold mb-4">Categories</h3>
             <ul className="space-y-2">
-              <li><a href="#" className="text-gray-400 hover:text-green-500">Tiffins</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-green-500">Salads</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-green-500">Beverages</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-green-500">Drinks</a></li>
+              <li><button onClick={() => handleNavigation('/menu?category=tiffins')} className="text-gray-400 hover:text-green-500">Tiffins</button></li>
+              <li><button onClick={() => handleNavigation('/menu?category=salads')} className="text-gray-400 hover:text-green-500">Salads</button></li>
+              <li><button onClick={() => handleNavigation('/menu?category=beverages')} className="text-gray-400 hover:text-green-500">Beverages</button></li>
+              <li><button onClick={() => handleNavigation('/menu?category=drinks')} className="text-gray-400 hover:text-green-500">Drinks</button></li>
             </ul>
           </div>
           
@@ -47,7 +58,7 @@ export const Footer = () => {
         
         <div className="border-t border-gray-800 mt-8 pt-8 text-center">
           <p className="text-gray-400">
-            © 2024 MorningTiffin. All rights reserved.
+            © {new Date().getFullYear()} MorningTiffin. All rights reserved.
           </p>
         </div>
       </div>

@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { auth } from '@/firebase';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, Outlet, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,17 +26,10 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 
 const Profile = () => {
   const { profile, loading, error, updateProfile } = useUserProfile();
-  const [activeSection, setActiveSection] = useState('personal');
   const [isEditing, setIsEditing] = useState(false);
   const navigate = useNavigate();
-  // For mobile accordion state
-  const [mobileActiveSection, setMobileActiveSection] = useState('personal');
+  const location = useLocation();
   const [showEditProfile, setShowEditProfile] = useState(false);
-
-  // Ensure personal info is open by default on mobile
-  useEffect(() => {
-    setMobileActiveSection('personal');
-  }, []);
 
   const handleLogout = async () => {
     try {
@@ -165,6 +158,13 @@ const Profile = () => {
     { id: 'support', icon: HelpCircle, label: 'Support', to: '/profile/support' },
     { id: 'test', icon: HelpCircle, label: 'Firestore Test', to: '/profile/test' },
   ];
+
+  // Check if we're on a nested route
+  const isNestedRoute = location.pathname !== '/profile';
+
+  if (isNestedRoute) {
+    return <Outlet />;
+  }
 
   return (
     <div className="max-w-xl mx-auto px-2 py-6">

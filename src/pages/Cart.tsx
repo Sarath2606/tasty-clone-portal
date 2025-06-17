@@ -17,6 +17,10 @@ const Cart = () => {
     }
   };
 
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    e.currentTarget.src = '/try.png'; // Using the same logo image as fallback
+  };
+
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       <div className="py-8">
@@ -30,7 +34,14 @@ const Cart = () => {
             <div className="space-y-6">
               {cart.map((item) => (
                 <div key={item.id} className="flex items-center bg-gray-900 rounded-lg p-4 gap-4">
-                  <img src={item.image} alt={item.name} className="w-20 h-20 object-cover rounded-md" />
+                  <div className="w-20 h-20 relative bg-gray-800 rounded-md overflow-hidden">
+                    <img 
+                      src={item.image} 
+                      alt={item.name} 
+                      className="w-full h-full object-cover"
+                      onError={handleImageError}
+                    />
+                  </div>
                   <div className="flex-1">
                     <div className="font-semibold text-lg text-green-300">{item.name}</div>
                     <div className="text-gray-400 text-sm mb-2">₹{item.price} x {item.quantity}</div>
