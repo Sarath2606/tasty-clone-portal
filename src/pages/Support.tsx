@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
-import { useMessageLimit } from '@/contexts/MessageLimitContext';
 import { Navigate } from 'react-router-dom';
-import { Mail, Phone, MapPin, Clock, MessageSquare, Send, AlertCircle, Info } from 'lucide-react';
+import { Mail, Phone, MapPin, Clock, MessageSquare, Send, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,7 +16,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { format } from 'date-fns';
 
 const contactInfo = {
   email: 'mail.morningtiffins@gmail.com',
@@ -69,21 +67,9 @@ export const Support = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
   const { profile } = useUserProfile();
-  const { messagesLeft, lastMessageTime, canSendMessage, checkMessageLimit, updateMessageCount } = useMessageLimit();
-
-  useEffect(() => {
-    if (user) {
-      checkMessageLimit();
-    }
-  }, [user, checkMessageLimit]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!canSendMessage) {
-      toast.error(`You have used today's message limit. Please try again tomorrow.`);
-      return;
-    }
 
     if (!user || !profile) {
       toast.error('Please log in to send messages');
@@ -116,9 +102,6 @@ export const Support = () => {
         'jgCM9y3VXOmGDkbbf' // EmailJS public key
       );
 
-      // Update message count
-      await updateMessageCount();
-
       // Reset form
       setFormData({ name: '', email: '', subject: '', message: '' });
       
@@ -150,28 +133,6 @@ export const Support = () => {
           </div>
         </CardContent>
       </Card>
-
-      {/* Message Limit Notice */}
-      {user && (
-        <Card className="mb-6 border-yellow-200 bg-yellow-50">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-3">
-              <Info className="w-5 h-5 text-yellow-500 mt-1 flex-shrink-0" />
-              <div>
-                <h3 className="font-semibold text-yellow-700 mb-2">Message Limit</h3>
-                <p className="text-yellow-600">
-                  You have {messagesLeft} message{messagesLeft !== 1 ? 's' : ''} left for today.
-                  {lastMessageTime && (
-                    <span className="block mt-1">
-                      Last message sent at {format(lastMessageTime, 'h:mm a')}
-                    </span>
-                  )}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Contact Information Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
@@ -268,7 +229,7 @@ export const Support = () => {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
-                  disabled={!canSendMessage || isSubmitting}
+                  disabled={isSubmitting}
                 />
               </div>
               <div className="space-y-2">
@@ -279,7 +240,7 @@ export const Support = () => {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
-                  disabled={!canSendMessage || isSubmitting}
+                  disabled={isSubmitting}
                 />
               </div>
             </div>
@@ -290,7 +251,7 @@ export const Support = () => {
                 value={formData.subject}
                 onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                 required
-                disabled={!canSendMessage || isSubmitting}
+                disabled={isSubmitting}
               />
             </div>
             <div className="space-y-2">
@@ -301,13 +262,13 @@ export const Support = () => {
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                 required
                 className="min-h-[150px]"
-                disabled={!canSendMessage || isSubmitting}
+                disabled={isSubmitting}
               />
             </div>
             <Button 
               type="submit" 
               className="w-full md:w-auto"
-              disabled={!canSendMessage || isSubmitting}
+              disabled={isSubmitting}
             >
               {isSubmitting ? (
                 <>

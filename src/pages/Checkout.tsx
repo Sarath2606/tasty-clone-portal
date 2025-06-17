@@ -9,6 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useCart } from "@/contexts/CartContext";
 import { useNavigate } from "react-router-dom";
+import { MapPicker } from "@/components/ui/map-picker";
+import { MapPin } from "lucide-react";
+import { useUserProfile } from "@/contexts/UserProfileContext";
 
 interface CartItem {
   id: string;
@@ -20,6 +23,7 @@ interface CartItem {
 
 export default function Checkout() {
   const { cart, getCartTotal, removeAllItems } = useCart();
+  const { profile } = useUserProfile();
   const navigate = useNavigate();
   const [coupon, setCoupon] = useState("");
   const [agreed, setAgreed] = useState(false);
@@ -29,6 +33,11 @@ export default function Checkout() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [showMap, setShowMap] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
 
   // Tax rate (5%)
   const TAX_RATE = 0.05;
@@ -49,6 +58,12 @@ export default function Checkout() {
       navigate('/cart');
     }
   }, [cart, navigate]);
+
+  const handleLocationSelect = (location: { address: string; lat: number; lng: number }) => {
+    setDeliveryAddress(location.address);
+    setSelectedLocation({ lat: location.lat, lng: location.lng });
+    setShowMap(false);
+  };
 
   const handleCheckout = () => {
     if (!deliveryDate || !deliveryTime || isProcessing) return;
@@ -127,12 +142,65 @@ export default function Checkout() {
               <div className="space-y-4">
                 <Input placeholder="Full Name" />
                 <Input placeholder="Phone Number" type="tel" />
+                
+                {/* Saved Addresses */}
+                {profile?.addresses && profile.addresses.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Saved Addresses</Label>
+                    <Select onValueChange={(value) => {
+                      const selectedAddr = profile.addresses.find(addr => addr.id === value);
+                      if (selectedAddr) {
+                        setDeliveryAddress(`${selectedAddr.street}, ${selectedAddr.city}, ${selectedAddr.state}, ${selectedAddr.zipCode}`);
+                        if (selectedAddr.latitude && selectedAddr.longitude) {
+                          setSelectedLocation({ lat: selectedAddr.latitude, lng: selectedAddr.longitude });
+                        }
+                      }
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a saved address" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {profile.addresses.map((addr) => (
+                          <SelectItem key={addr.id} value={addr.id}>
+                            {addr.street}, {addr.city}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 <div className="flex gap-2">
-                  <Input 
-                    placeholder="Delivery Address" 
-                    value={deliveryAddress}
-                    onChange={(e) => setDeliveryAddress(e.target.value)}
-                  />
+                  <div className="flex-1">
+                    <Input 
+                      placeholder="Delivery Address" 
+                      value={deliveryAddress}
+                      onChange={(e) => setDeliveryAddress(e.target.value)}
+                    />
+                  </div>
+                  <Dialog open={showMap} onOpenChange={setShowMap}>
+                    <DialogTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        className="shrink-0"
+                      >
+                        <MapPin className="h-4 w-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-3xl">
+                      <DialogHeader>
+                        <DialogTitle>Pick Delivery Location</DialogTitle>
+                        <DialogDescription>
+                          Search for your location or drop a pin on the map
+                        </DialogDescription>
+                      </DialogHeader>
+                      <MapPicker 
+                        onLocationSelect={handleLocationSelect}
+                        defaultLocation={selectedLocation || undefined}
+                      />
+                    </DialogContent>
+                  </Dialog>
                 </div>
                 
                 <Select value={addressType} onValueChange={setAddressType}>

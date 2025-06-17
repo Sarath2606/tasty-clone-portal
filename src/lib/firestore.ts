@@ -1,4 +1,4 @@
-import { db } from '@/firebase';
+import { db } from '@/config/firebase';
 import {
   collection,
   doc,
@@ -38,6 +38,8 @@ export interface Address {
   country: string;
   zipCode: string;
   isDefault: boolean;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface PaymentMethod {
@@ -82,13 +84,17 @@ export interface UserPreferences {
 
 // Helper functions
 export const createUserProfile = async (uid: string, userData: Partial<UserProfile>) => {
+  console.log("Creating user profile for:", uid);
+  console.log("User data:", userData);
+  
   const userRef = doc(db, 'users', uid);
   const now = Timestamp.now();
   
+  // Ensure all required fields are present
   const newProfile: UserProfile = {
     uid,
-    displayName: userData.displayName || null,
-    email: userData.email || null,
+    displayName: userData.displayName || userData.email?.split("@")[0] || "User",
+    email: userData.email,
     photoURL: userData.photoURL || null,
     phoneNumber: userData.phoneNumber || null,
     createdAt: now,
@@ -101,15 +107,36 @@ export const createUserProfile = async (uid: string, userData: Partial<UserProfi
       emailNotifications: true,
       pushNotifications: true,
       smsNotifications: false,
-    },
-    ...userData
+    }
   };
 
+  console.log("Attempting to create profile with data:", newProfile);
+
   try {
+    // First check if the document exists
+    const docSnap = await getDoc(userRef);
+    if (docSnap.exists()) {
+      console.log("Profile already exists, updating instead");
+      await updateDoc(userRef, {
+        ...newProfile,
+        updatedAt: now
+      });
+      return newProfile;
+    }
+
+    // Create new profile
     await setDoc(userRef, newProfile);
+    console.log("Profile created successfully");
     return newProfile;
   } catch (error) {
     console.error('Error creating user profile:', error);
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+    }
     throw new Error('Failed to create user profile');
   }
 };

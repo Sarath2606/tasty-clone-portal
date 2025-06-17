@@ -3,7 +3,6 @@ import { Toaster } from "sonner";
 import { AuthProvider } from "./contexts/AuthContext";
 import { UserProfileProvider } from "./contexts/UserProfileContext";
 import { CartProvider } from "./contexts/CartContext";
-import { MessageLimitProvider } from "./contexts/MessageLimitContext";
 import { Layout } from "./components/Layout";
 import Index from "./pages/Index";
 import Profile from "./pages/Profile";
@@ -25,28 +24,26 @@ function App() {
     <AuthProvider>
       <UserProfileProvider>
         <CartProvider>
-          <MessageLimitProvider>
-            <Toaster position="top-center" />
-            <Routes>
-              <Route path="/" element={<Layout />}>
-                <Route index element={<Index />} />
-                <Route path="menu" element={<Menu />} />
-                <Route path="cart" element={<Cart />} />
-                <Route path="checkout" element={<Checkout />} />
-                <Route path="plans" element={<Plans />} />
-                <Route path="profile" element={<Profile />}>
-                  <Route path="orders" element={<Orders />} />
-                  <Route path="order-history" element={<OrderHistory />} />
-                  <Route path="subscriptions" element={<Subscriptions />} />
-                  <Route path="payments" element={<Payments />} />
-                  <Route path="notifications" element={<Notifications />} />
-                  <Route path="support" element={<Support />} />
-                  <Route path="test" element={<ProfileTest />} />
-                  <Route path="address" element={<Address />} />
-                </Route>
+          <Toaster position="top-center" richColors />
+          <Routes>
+            <Route path="/" element={<Layout />}>
+              <Route index element={<Index />} />
+              <Route path="menu" element={<Menu />} />
+              <Route path="cart" element={<Cart />} />
+              <Route path="checkout" element={<Checkout />} />
+              <Route path="plans" element={<Plans />} />
+              <Route path="profile" element={<Profile />}>
+                <Route path="orders" element={<Orders />} />
+                <Route path="order-history" element={<OrderHistory />} />
+                <Route path="subscriptions" element={<Subscriptions />} />
+                <Route path="payments" element={<Payments />} />
+                <Route path="notifications" element={<Notifications />} />
+                <Route path="support" element={<Support />} />
+                <Route path="test" element={<ProfileTest />} />
+                <Route path="address" element={<Address />} />
               </Route>
-            </Routes>
-          </MessageLimitProvider>
+            </Route>
+          </Routes>
         </CartProvider>
       </UserProfileProvider>
     </AuthProvider>

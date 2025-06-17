@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { auth } from '@/firebase';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { auth, db } from '@/config/firebase';
 import { User } from 'firebase/auth';
 import {
   UserProfile,
@@ -14,16 +14,18 @@ import {
   addOrder,
   addNotification,
   getRecentOrders,
-  getUnreadNotifications
+  getUnreadNotifications,
+  UserPreferences
 } from '@/lib/firestore';
 import { toast } from 'sonner';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, doc, getDoc, setDoc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { useAuth } from "./AuthContext";
 
 interface UserProfileContextType {
   profile: UserProfile | null;
   loading: boolean;
-  error: string | null;
-  updateProfile: (data: Partial<UserProfile>) => Promise<void>;
+  error: Error | null;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   addNewAddress: (address: Omit<Address, 'id'>) => Promise<void>;
   addNewOrder: (order: Omit<Order, 'id'>) => Promise<void>;
   addNewNotification: (notification: Omit<Notification, 'id' | 'createdAt'>) => Promise<void>;
@@ -32,97 +34,119 @@ interface UserProfileContextType {
   addPaymentMethod: (paymentMethod: Omit<PaymentMethod, 'id'>) => Promise<void>;
   removePaymentMethod: (paymentId: string) => Promise<void>;
   setDefaultPaymentMethod: (paymentId: string) => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const UserProfileContext = createContext<UserProfileContextType | undefined>(undefined);
 
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
+
 export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, refreshToken } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      setLoading(true);
-      setError(null);
-      
-      if (user) {
-        try {
-          let userProfile = await getUserProfile(user.uid);
-          
-          if (!userProfile) {
-            // Create new profile with all required fields
-            userProfile = await createUserProfile(user.uid, {
-              uid: user.uid, // Ensure uid is set
-              displayName: user.displayName || user.email?.split('@')[0] || 'User',
-              email: user.email,
-              photoURL: user.photoURL,
-              phoneNumber: user.phoneNumber,
-              createdAt: Timestamp.now(),
-              updatedAt: Timestamp.now(),
-              addresses: [],
-              paymentMethods: [],
-              orderHistory: [],
-              notifications: [],
-              preferences: {
-                emailNotifications: true,
-                pushNotifications: true,
-                smsNotifications: false,
-              }
-            });
-            toast.success('Profile created successfully');
-          }
-          
-          setProfile(userProfile);
-        } catch (err) {
-          const errorMessage = err instanceof Error ? err.message : 'Failed to load profile';
-          setError(errorMessage);
-          toast.error(errorMessage);
-          console.error('Profile initialization error:', err);
-        }
-      } else {
-        setProfile(null);
-      }
+  const createInitialProfile = async (uid: string, email: string | null, displayName: string | null) => {
+    console.log('Creating initial profile for user:', uid);
+    const userRef = doc(db, 'users', uid);
+    const now = Timestamp.now();
+    const initialProfile: UserProfile = {
+      uid,
+      email,
+      displayName,
+      photoURL: null,
+      phoneNumber: null,
+      createdAt: now,
+      updatedAt: now,
+      preferences: {
+        emailNotifications: true,
+        pushNotifications: true,
+        smsNotifications: false,
+      },
+      addresses: [],
+      paymentMethods: [],
+      orderHistory: [],
+      notifications: [],
+    };
+
+    try {
+      await setDoc(userRef, initialProfile);
+      console.log('Initial profile created successfully');
+      return initialProfile;
+    } catch (err: unknown) {
+      console.error('Error creating initial profile:', err);
+      throw err;
+    }
+  };
+
+  const initializeProfile = async () => {
+    if (!user) {
+      console.log('No user found, clearing profile');
+      setProfile(null);
       setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  const updateProfile = async (data: Partial<UserProfile>) => {
-    if (!profile) {
-      toast.error('No profile found');
       return;
     }
 
+    console.log('Initializing profile for user:', user.uid);
+    setLoading(true);
+    setError(null);
+
     try {
-      setLoading(true);
-      setError(null);
+      await refreshToken();
+      console.log('Token refreshed successfully');
 
-      // Get the current user
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        throw new Error('No authenticated user found');
-      }
+      const userRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userRef);
 
-      // Update the profile in Firestore
-      const updatedProfile = await updateUserProfile(currentUser.uid, data);
-      
-      if (updatedProfile) {
-        setProfile(updatedProfile);
-        toast.success('Profile updated successfully');
+      if (!userDoc.exists()) {
+        console.log('No profile found, creating initial profile');
+        const newProfile = await createInitialProfile(
+          user.uid,
+          user.email,
+          user.displayName
+        );
+        setProfile(newProfile);
       } else {
-        throw new Error('Failed to get updated profile');
+        console.log('Existing profile found');
+        setProfile(userDoc.data() as UserProfile);
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update profile';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      console.error('Profile update error:', err);
+    } catch (err: unknown) {
+      console.error('Error initializing profile:', err);
+      setError(err instanceof Error ? err : new Error('Failed to initialize profile'));
     } finally {
       setLoading(false);
     }
   };
+
+  const updateProfile = async (updates: Partial<UserProfile>) => {
+    if (!user || !profile) {
+      throw new Error('No user or profile found');
+    }
+
+    try {
+      await refreshToken();
+      const userRef = doc(db, 'users', user.uid);
+      const updateData = {
+        ...updates,
+        updatedAt: Timestamp.now(),
+      };
+      await updateDoc(userRef, updateData);
+      setProfile(prev => prev ? { ...prev, ...updateData } : null);
+    } catch (err: unknown) {
+      console.error('Error updating profile:', err);
+      throw err;
+    }
+  };
+
+  const refreshProfile = async () => {
+    await initializeProfile();
+  };
+
+  useEffect(() => {
+    initializeProfile();
+  }, [user]);
 
   const addNewAddress = async (address: Omit<Address, 'id'>) => {
     if (!profile) {
@@ -138,9 +162,9 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setProfile(updatedProfile);
         toast.success('Address added successfully');
       }
-    } catch (err) {
+    } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to add address';
-      setError(errorMessage);
+      setError(errorMessage instanceof Error ? errorMessage : new Error(errorMessage));
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -161,9 +185,9 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setProfile(updatedProfile);
         toast.success('Order added successfully');
       }
-    } catch (err) {
+    } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to add order';
-      setError(errorMessage);
+      setError(errorMessage instanceof Error ? errorMessage : new Error(errorMessage));
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -184,9 +208,9 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setProfile(updatedProfile);
         toast.success('Notification added successfully');
       }
-    } catch (err) {
+    } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to add notification';
-      setError(errorMessage);
+      setError(errorMessage instanceof Error ? errorMessage : new Error(errorMessage));
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -201,9 +225,9 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     try {
       return await getRecentOrders(profile.uid, limit);
-    } catch (err) {
+    } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to get orders';
-      setError(errorMessage);
+      setError(errorMessage instanceof Error ? errorMessage : new Error(errorMessage));
       toast.error(errorMessage);
       return [];
     }
@@ -217,9 +241,9 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     try {
       return await getUnreadNotifications(profile.uid);
-    } catch (err) {
+    } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to get notifications';
-      setError(errorMessage);
+      setError(errorMessage instanceof Error ? errorMessage : new Error(errorMessage));
       toast.error(errorMessage);
       return [];
     }
@@ -240,9 +264,9 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const updatedPaymentMethods = [...profile.paymentMethods, newPaymentMethod];
       await updateProfile({ paymentMethods: updatedPaymentMethods });
       toast.success('Payment method added successfully');
-    } catch (err) {
+    } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to add payment method';
-      setError(errorMessage);
+      setError(errorMessage instanceof Error ? errorMessage : new Error(errorMessage));
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -262,9 +286,9 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       );
       await updateProfile({ paymentMethods: updatedPaymentMethods });
       toast.success('Payment method removed successfully');
-    } catch (err) {
+    } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to remove payment method';
-      setError(errorMessage);
+      setError(errorMessage instanceof Error ? errorMessage : new Error(errorMessage));
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -285,9 +309,9 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }));
       await updateProfile({ paymentMethods: updatedPaymentMethods });
       toast.success('Default payment method updated');
-    } catch (err) {
+    } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update default payment method';
-      setError(errorMessage);
+      setError(errorMessage instanceof Error ? errorMessage : new Error(errorMessage));
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -306,7 +330,8 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     getUnreadUserNotifications,
     addPaymentMethod,
     removePaymentMethod,
-    setDefaultPaymentMethod
+    setDefaultPaymentMethod,
+    refreshProfile
   };
 
   return (

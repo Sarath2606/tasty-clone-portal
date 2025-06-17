@@ -1,90 +1,77 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from '@/firebase';
+import { auth, db } from '@/config/firebase';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/firebase';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  error: string | null;
-  logout: () => Promise<void>;
+  refreshToken: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
-  error: null,
-  logout: async () => {},
+  refreshToken: async () => {},
 });
+
+export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
+
+  const refreshToken = async () => {
+    if (user) {
+      try {
+        await user.getIdToken(true);
+        console.log("Token refreshed successfully");
+      } catch (error) {
+        console.error("Error refreshing token:", error);
+      }
+    }
+  };
 
   useEffect(() => {
+    console.log("Setting up auth state listener...");
     const unsubscribe = onAuthStateChanged(
       auth,
-      (user) => {
+      async (user) => {
+        console.log("Auth state changed:", user ? "User is signed in" : "No user");
+        if (user) {
+          try {
+            // Force token refresh on auth state change
+            await user.getIdToken(true);
+            console.log("User details:", {
+              uid: user.uid,
+              email: user.email,
+              emailVerified: user.emailVerified
+            });
+          } catch (error) {
+            console.error("Error refreshing token:", error);
+          }
+        }
         setUser(user);
         setLoading(false);
-        setError(null);
-        
-        if (user) {
-          // Create user profile if it doesn't exist
-          const userRef = doc(db, "users", user.uid);
-          getDoc(userRef).then((docSnap) => {
-            if (!docSnap.exists()) {
-              setDoc(userRef, {
-                email: user.email,
-                displayName: user.displayName || user.email?.split("@")[0],
-                photoURL: user.photoURL,
-                createdAt: serverTimestamp(),
-                preferences: {
-                  notifications: true,
-                  emailUpdates: true,
-                },
-              });
-            }
-          });
-        }
       },
       (error) => {
         console.error("Auth state change error:", error);
-        setError(error.message);
+        toast.error("Authentication error occurred");
         setLoading(false);
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      console.log("Cleaning up auth state listener");
+      unsubscribe();
+    };
   }, []);
 
-  const logout = async () => {
-    try {
-      await signOut(auth);
-      navigate("/");
-      toast.success("Logged out successfully");
-    } catch (error) {
-      console.error("Logout error:", error);
-      toast.error("Failed to log out");
-    }
-  };
-
   return (
-    <AuthContext.Provider value={{ user, loading, error, logout }}>
-      {children}
+    <AuthContext.Provider value={{ user, loading, refreshToken }}>
+      {!loading && children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
 }; 
