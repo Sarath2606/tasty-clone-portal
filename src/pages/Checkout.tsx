@@ -42,6 +42,14 @@ export default function Checkout() {
   // Tax rate (5%)
   const TAX_RATE = 0.05;
 
+  // Restaurant location (should match the one in map-picker.tsx)
+  const RESTAURANT_LOCATION = {
+    lat: 17.494869, // Kitchen's latitude
+    lng: 78.389576,  // Kitchen's longitude
+  };
+
+  const DELIVERY_RADIUS = 5; // 5 km delivery radius
+
   // Calculate subtotal from actual cart
   const subtotal = getCartTotal();
   
@@ -176,6 +184,7 @@ export default function Checkout() {
                       placeholder="Delivery Address" 
                       value={deliveryAddress}
                       onChange={(e) => setDeliveryAddress(e.target.value)}
+                      readOnly
                     />
                   </div>
                   <Dialog open={showMap} onOpenChange={setShowMap}>
@@ -192,12 +201,13 @@ export default function Checkout() {
                       <DialogHeader>
                         <DialogTitle>Pick Delivery Location</DialogTitle>
                         <DialogDescription>
-                          Search for your location or drop a pin on the map
+                          Search for your location or use the current location button. We deliver within {DELIVERY_RADIUS}km radius.
                         </DialogDescription>
                       </DialogHeader>
                       <MapPicker 
                         onLocationSelect={handleLocationSelect}
-                        defaultLocation={selectedLocation || undefined}
+                        defaultLocation={selectedLocation || RESTAURANT_LOCATION}
+                        deliveryRadius={DELIVERY_RADIUS}
                       />
                     </DialogContent>
                   </Dialog>
